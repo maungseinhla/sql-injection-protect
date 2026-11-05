@@ -30,5 +30,15 @@ WAF-SENTINEL-X protects vulnerable web endpoints against SQL Injection (SQLi) at
    cd waf-sentinel-x
 
 2. ** Set up the virtual environment **
-python3 -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+    ``` bash
+    python3 -m venv .venv
+    source .venv/bin/activate  # Windows: .venv\Scripts\activate
+
+3. **Install Dependencies:**
+   ```bash
+   pip install -r requirements.txt
+
+
+## To test this first run the target_app.py and then run this 
+    ```bash 
+     uvicorn waf_server:app --reload --port 8000  
