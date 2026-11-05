@@ -1,0 +1,7 @@
+cat << 'EOF' > .gitignore
+__pycache__/
+*.pyc
+.venv/
+waf_logs.db
+.env
+EOF

@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WAF-SENTINEL-X</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        soc: {
+                            bg: '#05070a',
+                            panel: '#090d14',
+                            border: '#162032',
+                            red: '#ef4444',
+                            green: '#10b981',
+                            amber: '#f59e0b',
+                            blue: '#0284c7',
+                            purple: '#a855f7'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #05070a; color: #94a3b8; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #090d14; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+        .grid-cyber {
+            background-image: linear-gradient(to right, rgba(30, 41, 59, 0.15) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(30, 41, 59, 0.15) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+    </style>
+</head>
+<body class="min-h-screen grid-cyber flex flex-col text-xs antialiased">
+
+    <!-- Top Command Strip -->
+    <header class="bg-soc-panel border-b border-soc-border px-6 py-2.5 flex items-center justify-between sticky top-0 z-50">
+        <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-terminal text-cyan-400 text-sm"></i>
+                <span class="font-mono text-slate-100 font-bold tracking-wider uppercase text-sm">WAF-SENTINEL-X</span>
+                <span class="bg-cyan-950/80 text-cyan-400 border border-cyan-800/80 px-1.5 py-0.5 rounded text-[10px] font-mono">SOC-TIER-1</span>
+            </div>
+            <div class="h-4 w-px bg-soc-border"></div>
+            <div class="flex items-center space-x-2 font-mono text-[11px] text-slate-400">
+                <span>INSPECTOR:</span>
+                <span class="text-cyan-300">ML + HYBRID HEURISTICS</span>
+                <span class="text-slate-600">|</span>
+                <span>ORIGIN TRACKING:</span>
+                <span class="text-purple-400 uppercase font-semibold">TOR & ANONYMITY SYNCED</span>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-5 font-mono text-[11px]">
+            <div class="flex items-center space-x-2">
+                <span class="relative flex h-2 w-2">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span class="text-emerald-400 tracking-wide font-semibold">FEED ACTIVE</span>
+            </div>
+            <div class="text-slate-500">|</div>
+            <div id="sys-clock" class="text-slate-300 tracking-wider">--:--:-- UTC</div>
+        </div>
+    </header>
+
+    <!-- Main SOC Workspace -->
+    <main class="flex-1 p-6 space-y-6 max-w-[1700px] w-full mx-auto">
+
+        <!-- Target Telemetry & Sensor Ribbon -->
+        <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <!-- Node Telemetry -->
+            <div class="bg-soc-panel border border-soc-border rounded p-4 flex flex-col justify-between">
+                <div class="flex items-center justify-between text-slate-400 uppercase tracking-wider text-[10px] font-mono">
+                    <span>UPSTREAM TARGET NODE</span>
+                    <i class="fa-solid fa-server text-cyan-500"></i>
+                </div>
+                <div class="mt-2 font-mono">
+                    <div id="target-url" class="text-sm font-semibold text-slate-100 truncate">http://127.0.0.1:5000</div>
+                    <div class="flex items-center justify-between mt-2 pt-2 border-t border-soc-border/60 text-[11px]">
+                        <span class="text-slate-400">STATUS:</span>
+                        <span id="target-status" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400">CHECKING</span>
+                    </div>
+                    <div class="flex items-center justify-between mt-1 text-[11px]">
+                        <span class="text-slate-400">LINK LATENCY:</span>
+                        <span id="target-latency" class="text-amber-400 font-bold">-- ms</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Requests Metric -->
+            <div class="bg-soc-panel border border-soc-border rounded p-4 flex flex-col justify-between">
+                <div class="flex items-center justify-between text-slate-400 uppercase tracking-wider text-[10px] font-mono">
+                    <span>INGRESS FRAMES SCANNED</span>
+                    <i class="fa-solid fa-network-wired text-slate-500"></i>
+                </div>
+                <div class="mt-2">
+                    <div id="stat-total" class="font-mono text-3xl font-extrabold text-slate-100">0</div>
+                    <div class="mt-2 text-[10px] text-slate-400 flex items-center justify-between pt-2 border-t border-soc-border/60 font-mono">
+                        <span>POLICY: ACTIVE DROP</span>
+                        <span class="text-cyan-400">PROXY MODE</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Blocked Metric -->
+            <div class="bg-soc-panel border border-soc-border rounded p-4 flex flex-col justify-between relative overflow-hidden">
+                <div class="absolute -right-4 -bottom-4 text-red-950/20 text-7xl font-mono select-none">✕</div>
+                <div class="flex items-center justify-between text-red-400 uppercase tracking-wider text-[10px] font-mono">
+                    <span>SECURITY VIOLATIONS (403)</span>
+                    <i class="fa-solid fa-shield-virus text-red-400"></i>
+                </div>
+                <div class="mt-2 z-10">
+                    <div id="stat-blocked" class="font-mono text-3xl font-extrabold text-red-400">0</div>
+                    <div class="mt-2 text-[10px] text-red-400/80 flex items-center justify-between pt-2 border-t border-soc-border/60 font-mono">
+                        <span>MITRE T1190: EXPLOIT</span>
+                        <span class="text-red-400 font-bold">CRITICAL</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tor / Anonymity Metric -->
+            <div class="bg-soc-panel border border-soc-border rounded p-4 flex flex-col justify-between relative overflow-hidden">
+                <div class="flex items-center justify-between text-purple-400 uppercase tracking-wider text-[10px] font-mono">
+                    <span>TOR NODES DETECTED</span>
+                    <i class="fa-solid fa-user-secret text-purple-400"></i>
+                </div>
+                <div class="mt-2 z-10">
+                    <div id="stat-tor" class="font-mono text-3xl font-extrabold text-purple-400">0</div>
+                    <div class="mt-2 text-[10px] text-purple-400/80 flex items-center justify-between pt-2 border-t border-soc-border/60 font-mono">
+                        <span>ANONYMOUS RELAYS</span>
+                        <span class="text-purple-300 font-bold">MONITORED</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SOC Visual Analytics Strip -->
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <!-- Time-Series Chart -->
+            <div class="lg:col-span-2 bg-soc-panel border border-soc-border rounded p-4">
+                <div class="flex items-center justify-between mb-3 pb-2 border-b border-soc-border">
+                    <div class="flex items-center space-x-2 font-mono text-[11px] uppercase tracking-wider text-slate-300">
+                        <i class="fa-solid fa-chart-area text-cyan-400"></i>
+                        <span>INGRESS TELEMETRY & ATTACK SPIKES (HOURLY)</span>
+                    </div>
+                    <div class="flex items-center space-x-4 text-[10px] font-mono">
+                        <span class="inline-flex items-center"><span class="w-2.5 h-2.5 bg-emerald-500 mr-1.5 rounded-sm"></span>CLEAN</span>
+                        <span class="inline-flex items-center"><span class="w-2.5 h-2.5 bg-red-500 mr-1.5 rounded-sm"></span>SQLI DROP</span>
+                    </div>
+                </div>
+                <div class="h-56">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Ratio Doughnut Chart -->
+            <div class="bg-soc-panel border border-soc-border rounded p-4 flex flex-col">
+                <div class="flex items-center justify-between mb-3 pb-2 border-b border-soc-border font-mono text-[11px] uppercase tracking-wider text-slate-300">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-chart-pie text-cyan-400"></i>
+                        <span>THREAT DISPOSITION RATIO</span>
+                    </div>
+                </div>
+                <div class="flex-1 relative flex items-center justify-center">
+                    <div class="h-44 w-full">
+                        <canvas id="ratioChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Incident & Threat Live Wire Log -->
+        <section class="bg-soc-panel border border-soc-border rounded flex flex-col">
+            <!-- Console Filter Bar -->
+            <div class="px-5 py-3 border-b border-soc-border flex flex-wrap items-center justify-between gap-3 bg-black/30">
+                <div class="flex items-center space-x-3">
+                    <i class="fa-solid fa-shield-cat text-cyan-400 text-sm"></i>
+                    <span class="font-mono text-xs text-slate-200 font-bold uppercase tracking-wider">LIVE EVENT STREAM (SIEM LOGS)</span>
+                    <span id="log-count" class="bg-soc-border text-cyan-300 text-[10px] font-mono px-2 py-0.5 rounded font-semibold">0 EVENTS</span>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-[10px]"></i>
+                        <input id="search-filter" type="text" oninput="filterLogs()" placeholder="FILTER IP / TAG / PAYLOAD..." 
+                               class="bg-black/60 border border-soc-border rounded pl-8 pr-3 py-1.5 text-[11px] font-mono text-slate-200 focus:outline-none focus:border-cyan-500 w-60 placeholder-slate-600">
+                    </div>
+                    <button onclick="fetchAllData()" class="bg-soc-border hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded font-mono text-[11px] flex items-center space-x-1.5 transition">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                        <span>POLL</span>
+                    </button>
+                    <button onclick="clearAllLogs()" class="bg-red-950/40 hover:bg-red-900/60 border border-red-800/60 text-red-400 px-3 py-1.5 rounded font-mono text-[11px] flex items-center space-x-1.5 transition">
+                        <i class="fa-solid fa-trash-can"></i>
+                        <span>PURGE LOGS</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- SIEM Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left font-mono border-collapse text-[11px]">
+                    <thead class="bg-[#0b101a] text-slate-400 uppercase text-[10px] tracking-wider border-b border-soc-border select-none">
+                        <tr>
+                            <th class="py-2.5 px-4 w-44">TIMESTAMP (UTC)</th>
+                            <th class="py-2.5 px-4 w-52">SOURCE IP & CLASSIFICATION</th>
+                            <th class="py-2.5 px-4 w-28">SEVERITY</th>
+                            <th class="py-2.5 px-4 w-40">TARGET ENDPOINT</th>
+                            <th class="py-2.5 px-4">DECODED PAYLOAD BUFFER</th>
+                            <th class="py-2.5 px-4 w-28">CONFIDENCE</th>
+                            <th class="py-2.5 px-4 w-28 text-right">DISPOSITION</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logs-table-body" class="divide-y divide-soc-border/60 text-slate-300">
+                        <tr>
+                            <td colspan="7" class="py-8 text-center text-slate-600 font-mono tracking-widest uppercase">
+                                [ ACQUIRING REAL-TIME SENSOR FEED... ]
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-soc-panel border-t border-soc-border px-6 py-2 flex items-center justify-between text-[10px] font-mono text-slate-500">
+        <div>SOC STATION: NODE-LOCAL-01 // ANONYMITY TRACKER ACTIVE</div>
+        <div>CLASSIFICATION: TLP:AMBER // STRICT INTERNAL AUDIT</div>
+    </footer>
+
+    <script>
+        const API_BASE = "http://127.0.0.1:8000";
+        let trendChartInstance = null;
+        let ratioChartInstance = null;
+        let rawLogsCache = [];
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('sys-clock').innerText = now.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        function initCharts() {
+            const ctxTrend = document.getElementById('trendChart').getContext('2d');
+            trendChartInstance = new Chart(ctxTrend, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'ALLOWED',
+                            data: [],
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                            borderWidth: 1.5,
+                            tension: 0.1,
+                            fill: true,
+                            pointRadius: 2
+                        },
+                        {
+                            label: 'BLOCKED',
+                            data: [],
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            borderWidth: 1.5,
+                            tension: 0.1,
+                            fill: true,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#ef4444'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { 
+                            grid: { color: '#162032' }, 
+                            ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 9 } } 
+                        },
+                        y: { 
+                            grid: { color: '#162032' }, 
+                            ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 9 }, beginAtZero: true, stepSize: 1 } 
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            const ctxRatio = document.getElementById('ratioChart').getContext('2d');
+            ratioChartInstance = new Chart(ctxRatio, {
+                type: 'doughnut',
+                data: {
+                    labels: ['ALLOWED', 'BLOCKED'],
+                    datasets: [{
+                        data: [0, 0],
+                        backgroundColor: ['#10b981', '#ef4444'],
+                        borderColor: '#090d14',
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '72%',
+                    plugins: { 
+                        legend: { 
+                            position: 'bottom', 
+                            labels: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 10 }, boxWidth: 10 } 
+                        } 
+                    }
+                }
+            });
+        }
+
+        async function updateHealth() {
+            try {
+                const res = await fetch(`${API_BASE}/api/dashboard/target-health`);
+                const data = await res.json();
+                document.getElementById('target-url').innerText = data.target_url;
+                
+                const statusBadge = document.getElementById('target-status');
+                if (data.status === 'ONLINE') {
+                    statusBadge.className = "px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-emerald-950/80 text-emerald-400 border border-emerald-800/80";
+                    statusBadge.innerText = "ONLINE // 200 OK";
+                } else {
+                    statusBadge.className = "px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-red-950/80 text-red-400 border border-red-800/80";
+                    statusBadge.innerText = "UNREACHABLE";
+                }
+                document.getElementById('target-latency').innerText = `${data.latency_ms} ms`;
+            } catch (err) {
+                console.error("Health poll error:", err);
+            }
+        }
+
+        async function updateCharts() {
+            try {
+                const res = await fetch(`${API_BASE}/api/dashboard/chart-data`);
+                const chartData = await res.json();
+                
+                if (trendChartInstance && chartData.labels) {
+                    trendChartInstance.data.labels = chartData.labels;
+                    trendChartInstance.data.datasets[0].data = chartData.allowed;
+                    trendChartInstance.data.datasets[1].data = chartData.blocked;
+                    trendChartInstance.update();
+                }
+            } catch (err) {
+                console.error("Telemetry chart error:", err);
+            }
+        }
+
+        function getIpBadge(ipType) {
+            const type = (ipType || 'DIRECT').toUpperCase();
+            if (type.includes('TOR')) {
+                return `<span class="inline-flex items-center space-x-1 bg-purple-950/80 text-purple-300 border border-purple-700/80 px-1.5 py-0.5 rounded text-[9px] font-bold ml-1.5"><i class="fa-solid fa-user-secret text-[8px]"></i><span>TOR-EXIT</span></span>`;
+            } else if (type.includes('LOCAL')) {
+                return `<span class="inline-flex items-center space-x-1 bg-slate-800 text-slate-400 border border-slate-700 px-1.5 py-0.5 rounded text-[9px] font-bold ml-1.5"><i class="fa-solid fa-house-laptop text-[8px]"></i><span>LOCAL</span></span>`;
+            } else if (type.includes('VPN') || type.includes('PROXY')) {
+                return `<span class="inline-flex items-center space-x-1 bg-amber-950/80 text-amber-300 border border-amber-700/80 px-1.5 py-0.5 rounded text-[9px] font-bold ml-1.5"><i class="fa-solid fa-mask text-[8px]"></i><span>VPN</span></span>`;
+            } else {
+                return `<span class="inline-flex items-center space-x-1 bg-cyan-950/80 text-cyan-400 border border-cyan-800/80 px-1.5 py-0.5 rounded text-[9px] font-bold ml-1.5"><i class="fa-solid fa-globe text-[8px]"></i><span>PUBLIC</span></span>`;
+            }
+        }
+
+        function renderLogs(logs) {
+            const tbody = document.getElementById('logs-table-body');
+            document.getElementById('log-count').innerText = `${logs.length} EVENTS`;
+
+            if (logs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-slate-600 font-mono tracking-widest">[ NO INCIDENT LOGS DETECTED ]</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = logs.map(log => {
+                const isBlocked = log.status === 'BLOCKED';
+                const rowClass = isBlocked ? 'bg-red-950/10 hover:bg-red-950/20' : 'hover:bg-slate-800/30';
+                const severity = isBlocked 
+                    ? `<span class="text-red-400 bg-red-950/60 border border-red-800/60 px-1.5 py-0.5 rounded text-[9px] font-bold">CRITICAL</span>` 
+                    : `<span class="text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-1.5 py-0.5 rounded text-[9px] font-bold">LOW</span>`;
+                const verdict = isBlocked
+                    ? `<span class="text-red-400 font-bold tracking-wider">[ BLOCKED ]</span>`
+                    : `<span class="text-emerald-400 font-bold tracking-wider">[ ALLOWED ]</span>`;
+
+                return `
+                    <tr class="transition-colors ${rowClass}">
+                        <td class="py-2.5 px-4 text-slate-400 whitespace-nowrap">${log.timestamp}</td>
+                        <td class="py-2.5 px-4 text-slate-200 font-medium whitespace-nowrap">
+                            <span class="text-cyan-300 font-bold">${log.client_ip}</span>
+                            ${getIpBadge(log.ip_type)}
+                        </td>
+                        <td class="py-2.5 px-4">${severity}</td>
+                        <td class="py-2.5 px-4 text-slate-300 font-medium">${log.endpoint}</td>
+                        <td class="py-2.5 px-4 text-slate-200 max-w-sm truncate font-mono select-all" title="${log.payload}">${log.payload}</td>
+                        <td class="py-2.5 px-4 ${isBlocked ? 'text-red-400' : 'text-slate-400'} font-bold">${log.confidence}%</td>
+                        <td class="py-2.5 px-4 text-right">${verdict}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterLogs() {
+            const query = document.getElementById('search-filter').value.toLowerCase();
+            if (!query) {
+                renderLogs(rawLogsCache);
+                return;
+            }
+            const filtered = rawLogsCache.filter(l => 
+                (l.client_ip && l.client_ip.toLowerCase().includes(query)) || 
+                (l.ip_type && l.ip_type.toLowerCase().includes(query)) ||
+                (l.payload && l.payload.toLowerCase().includes(query)) ||
+                (l.endpoint && l.endpoint.toLowerCase().includes(query))
+            );
+            renderLogs(filtered);
+        }
+
+        async function fetchLogsAndStats() {
+            try {
+                // Fetch Stats
+                const statsRes = await fetch(`${API_BASE}/api/dashboard/stats`);
+                const stats = await statsRes.json();
+                document.getElementById('stat-total').innerText = stats.total_requests;
+                document.getElementById('stat-blocked').innerText = stats.blocked_attacks;
+                document.getElementById('stat-tor').innerText = stats.tor_detected || 0;
+
+                if (ratioChartInstance) {
+                    ratioChartInstance.data.datasets[0].data = [stats.allowed_requests, stats.blocked_attacks];
+                    ratioChartInstance.update();
+                }
+
+                // Fetch Logs
+                const logsRes = await fetch(`${API_BASE}/api/dashboard/logs`);
+                rawLogsCache = await logsRes.json();
+                filterLogs();
+
+            } catch (err) {
+                console.error("SIEM log ingest error:", err);
+            }
+        }
+
+        async function clearAllLogs() {
+            if (!confirm("[SECURITY CONFIRMATION]\nPurge all forensic telemetry and event history?")) {
+                return;
+            }
+            try {
+                const res = await fetch(`${API_BASE}/api/dashboard/clear-logs`, { method: 'POST' });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    fetchAllData();
+                }
+            } catch (err) {
+                console.error("Log purge failed:", err);
+            }
+        }
+
+        function fetchAllData() {
+            updateHealth();
+            fetchLogsAndStats();
+            updateCharts();
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            fetchAllData();
+            setInterval(fetchAllData, 3000);
+        });
+    </script>
+</body>
+</html>
