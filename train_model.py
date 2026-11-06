@@ -15,7 +15,7 @@ df = pd.read_csv(dataset_path)
 
 df = df.dropna()
 
-# ၂။ Preprocessing Function 
+
 def clean_payload(text):
     text = str(text)
     
