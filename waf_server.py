@@ -12,15 +12,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 import httpx
 
-# ၁။ Model နှင့် Configuration
+
 vectorizer = joblib.load("vectorizer.pkl")
 model = joblib.load("sqli_model.pkl")
 THRESHOLD = 0.50
 
-# နောက်ကွယ်ရှိ Target Web Server လိပ်စာ
+##insert your target server URL here bro
+
 TARGET_SERVER_URL = "http://127.0.0.1:5000"
 
-# Tor Node Cache နှင့် Background Sync Logic
+
 TOR_NODES = set()
 TOR_EXIT_LIST_URL = "https://check.torproject.org/torbulkexitlist"
 
@@ -35,7 +36,7 @@ async def sync_tor_nodes():
     except Exception as e:
         print(f"[!] Warning: Tor exit list sync failed ({e})")
 
-# Server စတင်ချိန်တွင် Tor List အလိုအလျောက် ဆွဲယူရန် Lifespan Handler
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     asyncio.create_task(sync_tor_nodes())
@@ -51,7 +52,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ၂။ Database Setup (ip_type column ပါဝင်သည်)
+
 DB_FILE = "waf_logs.db"
 
 def get_db_connection():
@@ -74,7 +75,7 @@ def init_db():
             status TEXT
         )
     """)
-    # Database အဟောင်းရှိနေပါက ip_type column မရှိလျှင် auto alter ပြုလုပ်ခြင်း
+    
     cursor.execute("PRAGMA table_info(logs)")
     columns = [row["name"] for row in cursor.fetchall()]
     if "ip_type" not in columns:
@@ -102,9 +103,9 @@ def log_event(client_ip: str, ip_type: str, endpoint: str, payload: str, confide
     conn.commit()
     conn.close()
 
-# ၃။ Client IP နှင့် Threat Classification Helper
+
 def extract_real_ip(request: Request) -> str:
-    # Reverse proxy / Cloudflare နောက်ကွယ်ရှိ IP အစစ်ကို ဆွဲထုတ်ခြင်း
+    
     cf_ip = request.headers.get("cf-connecting-ip")
     if cf_ip:
         return cf_ip.strip()
@@ -120,7 +121,7 @@ def classify_ip(ip: str) -> str:
         return "TOR-EXIT"
     return "PUBLIC-IP"
 
-# ၄။ ML + Heuristics Hybrid Inspection Function
+
 SUSPICIOUS_FUNCTIONS = ["sleep(", "benchmark(", "waitfor delay", "pg_sleep("]
 
 def inspect_text(text: str) -> tuple[bool, float]:
@@ -136,7 +137,7 @@ def inspect_text(text: str) -> tuple[bool, float]:
     prob = float(model.predict_proba(vec)[0][1])
     return (prob >= THRESHOLD), prob
 
-# ၅။ Dashboard Static & API Endpoints
+
 @app.get("/dashboard", response_class=FileResponse)
 async def serve_dashboard():
     if os.path.exists("index.html"):
@@ -230,7 +231,7 @@ async def get_chart_data():
         "blocked": blocked
     }
 
-# ၆။ Catch-All Reverse Proxy Route
+
 @app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
 async def reverse_proxy(path: str, request: Request):
     if path == "dashboard" or path.startswith("api/dashboard"):

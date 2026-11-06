@@ -62,7 +62,7 @@
             <div class="h-4 w-px bg-soc-border"></div>
             <div class="flex items-center space-x-2 font-mono text-[11px] text-slate-400">
                 <span>INSPECTOR:</span>
-                <span class="text-cyan-300">ML + HYBRID HEURISTICS</span>
+                <span class="text-cyan-300">Combination of Machine Learning and Hybrid Heuristics</span>
                 <span class="text-slate-600">|</span>
                 <span>ORIGIN TRACKING:</span>
                 <span class="text-purple-400 uppercase font-semibold">TOR & ANONYMITY SYNCED</span>
@@ -254,9 +254,17 @@
         let rawLogsCache = [];
 
         function updateClock() {
-            const now = new Date();
-            document.getElementById('sys-clock').innerText = now.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
-        }
+    const now = new Date();
+    
+    // Convert the current time to Myanmar Time (UTC + 6.5 hours)
+    const myanmarOffset = 6.5 * 60 * 60 * 1000; 
+    const myanmarTime = new Date(now.getTime() + myanmarOffset);
+    
+    // Format the string and append MMT
+    const clockString = myanmarTime.toISOString().replace('T', ' ').substring(0, 19) + ' MMT';
+    
+    document.getElementById('sys-clock').innerText = clockString;
+}
         setInterval(updateClock, 1000);
         updateClock();
 
